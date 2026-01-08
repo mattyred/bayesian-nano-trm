@@ -1,0 +1,140 @@
+task_name: train
+tags:
+- trm
+- sudoku
+- 4x4
+ckpt_path: null
+save_dir: /tmp/ml-experiments
+seed: 12345
+sweep_mode: false
+append_wandb_name_to_save_dir: true
+timekeeping:
+  max_epochs: 500
+  batch_size: 768
+  num_workers: 0
+data:
+  _target_: src.nn.data.SudokuDataModule
+  _recursive_: false
+  batch_size: ${timekeeping.batch_size}
+  num_workers: ${timekeeping.num_workers}
+  num_train_puzzles: 2000
+  num_val_puzzles: 800
+  num_test_puzzles: 0
+  grid_size: 4
+  max_grid_size: 6
+  min_givens: null
+  max_givens: null
+  seed: 42
+  data_dir: ./data/sudoku_4x4_small
+  pad_value: 0
+model:
+  _target_: src.nn.models.trm.TRMModule
+  _recursive_: false
+  ffn_expansion: ${model_tuning.ffn_expansion}
+  hidden_size: ${model_tuning.hidden_size}
+  num_layers: ${model_tuning.num_layers}
+  N_supervision: ${model_tuning.N_supervision}
+  N_supervision_val: ${model_tuning.N_supervision_val}
+  learning_rate: ${model_tuning.learning_rate}
+  H_cycles: ${model_tuning.H_cycles}
+  L_cycles: ${model_tuning.L_cycles}
+  learning_rate_emb: ${model_tuning.learning_rate_emb}
+  weight_decay: ${model_tuning.weight_decay}
+  halt_exploration_prob: ${model_tuning.halt_exploration_prob}
+  warmup_steps: ${model_tuning.warmup_steps}
+  num_heads: ${model_tuning.num_heads}
+  puzzle_emb_dim: ${model_tuning.puzzle_emb_dim}
+  puzzle_emb_len: ${model_tuning.puzzle_emb_len}
+  rope_theta: ${model_tuning.rope_theta}
+  pos_emb_type: ${model_tuning.pos_emb_type}
+  lr_min_ratio: ${model_tuning.lr_min_ratio}
+  use_mlp_t: ${model_tuning.use_mlp_t}
+  use_conv_swiglu: ${model_tuning.use_conv_swiglu}
+  use_board_swiglu: ${model_tuning.use_board_swiglu}
+  use_muon: ${model_tuning.use_muon}
+  output_dir: None
+  num_puzzles: 0
+  batch_size: 0
+  pad_value: 0
+  max_grid_size: 0
+  vocab_size: 0
+  seq_len: 0
+callbacks:
+  model_checkpoint:
+    _target_: lightning.pytorch.callbacks.ModelCheckpoint
+    dirpath: ${paths.output_dir}/checkpoints
+    filename: epoch_{epoch:03d}
+    monitor: val/accuracy
+    verbose: false
+    save_last: true
+    save_top_k: 1
+    mode: max
+    auto_insert_metric_name: false
+    save_weights_only: false
+    every_n_train_steps: null
+    train_time_interval: null
+    every_n_epochs: null
+    save_on_train_epoch_end: null
+  ema:
+    _target_: src.nn.callbacks.ema.EMACallback
+    decay: 0.999
+    use_ema_for_validation: true
+    use_ema_for_test: true
+logger:
+  csv:
+    _target_: lightning.pytorch.loggers.csv_logs.CSVLogger
+    save_dir: ${paths.output_dir}
+    name: csv/
+    prefix: ''
+  wandb:
+    _target_: lightning.pytorch.loggers.wandb.WandbLogger
+    name: null
+    save_dir: ${paths.output_dir}
+    offline: false
+    id: null
+    anonymous: null
+    entity: mattia-rosso-kaust
+    project: bayesian-nano-trm
+    log_model: false
+    prefix: ''
+    tags: ${tags}
+    notes: null
+trainer:
+  _target_: lightning.pytorch.trainer.Trainer
+  min_epochs: 1
+  max_epochs: ${timekeeping.max_epochs}
+  accelerator: gpu
+  devices: 1
+  check_val_every_n_epoch: 10
+  deterministic: false
+  precision: 16
+paths:
+  log_dir: .
+  output_dir: ${hydra:runtime.output_dir}
+extras:
+  ignore_warnings: false
+  enforce_tags: true
+  print_config: true
+model_tuning:
+  learning_rate: 0.0001
+  learning_rate_emb: 0.0001
+  warmup_steps: 2000
+  weight_decay: 1.0
+  lr_min_ratio: 0.01
+  num_heads: 8
+  halt_exploration_prob: 0.1
+  N_supervision: 16
+  N_supervision_val: 16
+  H_cycles: 3
+  L_cycles: 6
+  num_layers: 2
+  puzzle_emb_dim: 0
+  puzzle_emb_len: 0
+  hidden_size: 512
+  ffn_expansion: 4
+  rope_theta: 10000
+  pos_emb_type: null
+  use_mlp_t: true
+  use_conv_swiglu: false
+  use_board_swiglu: false
+  use_muon: false

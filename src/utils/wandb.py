@@ -3,8 +3,8 @@ import tempfile
 
 import wandb
 
-WANDB_ENTITY_NAME = "iuhoiuhoiuho"
-WANDB_PROJECT_NAME = "uihoiuhoihioh"
+WANDB_ENTITY_NAME = "mattia-rosso-kaust"
+WANDB_PROJECT_NAME = "bayesian-nano-trm"
 
 
 def init_wandb_logger(args, run_name=None, tags=None):

@@ -1,0 +1,2 @@
+- experiment=trm_sudoku_4x4
+- trainer.precision=32

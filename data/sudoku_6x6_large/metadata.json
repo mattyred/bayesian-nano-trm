@@ -1,0 +1,14 @@
+{
+  "mode": "full",
+  "max_grid_size": 8,
+  "vocab_size": 9,
+  "seq_len": 64,
+  "num_train": 96000,
+  "num_val": 2000,
+  "num_test": 2000,
+  "num_train_groups": 12000,
+  "num_val_groups": 2000,
+  "num_test_groups": 2000,
+  "num_augmentations": 7,
+  "seed": 42
+}

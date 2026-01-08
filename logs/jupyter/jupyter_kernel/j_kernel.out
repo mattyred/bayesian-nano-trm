@@ -1,0 +1,8 @@
+gpu502-11 pinned to port 10000
+ 
+To connect to the compute node gpu502-11 on IBEX running your jupyter notebook server, you need to run following two commands in a terminal 1. 
+Command to create ssh tunnel from you workstation/laptop to glogin: 
+
+ssh -L 10000:gpu502-11:10000 rossom@glogin.ibex.kaust.edu.sa 
+
+Copy the link provided below by jupyter-server and replace the NODENAME with localhost before pasting it in your browser on your workstation/laptop 

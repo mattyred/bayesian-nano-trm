@@ -1,0 +1,3 @@
+- experiment=trm_sudoku_4x4
+- trainer.accelerator=cpu
+- data.batch_size=4

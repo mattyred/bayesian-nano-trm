@@ -1,0 +1,622 @@
+_wandb:
+    value:
+        cli_version: 0.23.1
+        e:
+            ui8tkxumjvwqi1curbw3o1hpyz4mkqy5:
+                args:
+                    - experiment=trm_sudoku_4x4
+                    - trainer.precision=32
+                codePath: src/nn/train.py
+                codePathLocal: src/nn/train.py
+                cpu_count: 32
+                cpu_count_logical: 32
+                cudaVersion: "12.8"
+                disk:
+                    /:
+                        total: "198303735808"
+                        used: "11451461632"
+                email: mattia.rosso@kaust.edu.sa
+                executable: /ibex/user/rossom/bayesian-nano-trm/.venv/bin/python3
+                git:
+                    commit: 9df5dd7d765dfae5b96b1ff10b6c3e6c05b20dce
+                    remote: git@github.com:mattyred/bayesian-nano-trm.git
+                gpu: NVIDIA GeForce GTX 1080 Ti
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Pascal
+                      cudaCores: 3584
+                      memoryTotal: "11811160064"
+                      name: NVIDIA GeForce GTX 1080 Ti
+                      uuid: GPU-68eea1db-d8d5-6ddd-29ad-e281c9150356
+                host: gpu502-11
+                memory:
+                    total: "404336418816"
+                os: Linux-5.14.0-427.20.1.el9_4.0.1.x86_64-x86_64-with-glibc2.34
+                program: /ibex/user/rossom/bayesian-nano-trm/src/nn/train.py
+                python: CPython 3.12.1
+                root: /ibex/user/rossom/bayesian-nano-trm/train/runs/2026-01-05_16-58-06
+                slurm:
+                    cluster_name: dragon
+                    conf: /opt/slurm/cluster/ibex/slurm/slurm.conf
+                    cpu_bind: quiet,mask_cpu:0x00000019
+                    cpu_bind_list: "0x00000019"
+                    cpu_bind_type: 'mask_cpu:'
+                    cpu_bind_verbose: quiet
+                    cpus_on_node: "3"
+                    distribution: cyclic
+                    gpus_on_node: "1"
+                    gtids: "0"
+                    job_account: pi-filippm
+                    job_cpus_per_node: "3"
+                    job_end_time: "1767620370"
+                    job_gid: "1212516"
+                    job_group: g-rossom
+                    job_id: "43673378"
+                    job_name: bash
+                    job_nodelist: gpu502-11
+                    job_num_nodes: "1"
+                    job_partition: gpu
+                    job_qos: normal
+                    job_start_time: "1767614970"
+                    job_uid: "212516"
+                    job_user: rossom
+                    jobid: "43673378"
+                    launch_node_ipaddr: 10.109.65.170
+                    localid: "0"
+                    mem_per_node: "131072"
+                    mpi_type: pmi2
+                    nnodes: "1"
+                    nodeid: "0"
+                    nodelist: gpu502-11
+                    nprocs: "1"
+                    ntasks: "1"
+                    oom_kill_step: "0"
+                    prio_process: "0"
+                    procid: "0"
+                    pty_port: "43009"
+                    pty_win_col: "209"
+                    pty_win_row: "19"
+                    script_context: prolog_task
+                    srun_comm_host: 10.109.65.170
+                    srun_comm_port: "37419"
+                    step_gpus: "0"
+                    step_id: "0"
+                    step_launcher_port: "37419"
+                    step_nodelist: gpu502-11
+                    step_num_nodes: "1"
+                    step_num_tasks: "1"
+                    step_resv_ports: "12903"
+                    step_tasks_per_node: "1"
+                    stepid: "0"
+                    submit_dir: /ibex/user/rossom/bayesian-nano-trm
+                    submit_host: vsc509-29-r
+                    task_pid: "3011423"
+                    tasks_per_node: "1"
+                    topology_addr: main-intel.ibsw-intel-05-2.gpu502-11
+                    topology_addr_pattern: switch.switch.node
+                    umask: "0022"
+                startedAt: "2026-01-05T13:58:09.254174Z"
+                writerId: ui8tkxumjvwqi1curbw3o1hpyz4mkqy5
+        m:
+            - "1": trainer/global_step
+              "6":
+                - 3
+              "7": []
+            - "2": '*'
+              "5": 1
+              "6":
+                - 1
+              "7": []
+        python_version: 3.12.1
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 50
+                - 53
+                - 106
+            "2":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 50
+                - 53
+                - 106
+            "3":
+                - 2
+                - 7
+                - 15
+                - 66
+            "4": 3.12.1
+            "5": 0.23.1
+            "6": 4.57.3
+            "12": 0.23.1
+            "13": linux-x86_64
+H_cycles:
+    value: 3
+L_cycles:
+    value: 6
+N_supervision:
+    value: 16
+N_supervision_val:
+    value: 16
+append_wandb_name_to_save_dir:
+    value: true
+batch_size:
+    value: 768
+callbacks:
+    value:
+        ema:
+            _target_: src.nn.callbacks.ema.EMACallback
+            decay: 0.999
+            use_ema_for_test: true
+            use_ema_for_validation: true
+        model_checkpoint:
+            _target_: lightning.pytorch.callbacks.ModelCheckpoint
+            auto_insert_metric_name: false
+            dirpath: /ibex/user/rossom/bayesian-nano-trm/train/runs/2026-01-05_16-58-06/checkpoints
+            every_n_epochs: null
+            every_n_train_steps: null
+            filename: epoch_{epoch:03d}
+            mode: max
+            monitor: val/accuracy
+            save_last: true
+            save_on_train_epoch_end: null
+            save_top_k: 1
+            save_weights_only: false
+            train_time_interval: null
+            verbose: false
+callbacks.ema._target_:
+    value: src.nn.callbacks.ema.EMACallback
+callbacks.ema.decay:
+    value: 0.999
+callbacks.ema.use_ema_for_test:
+    value: true
+callbacks.ema.use_ema_for_validation:
+    value: true
+callbacks.model_checkpoint._target_:
+    value: lightning.pytorch.callbacks.ModelCheckpoint
+callbacks.model_checkpoint.auto_insert_metric_name:
+    value: false
+callbacks.model_checkpoint.dirpath:
+    value: /ibex/user/rossom/bayesian-nano-trm/train/runs/2026-01-05_16-58-06/checkpoints
+callbacks.model_checkpoint.every_n_epochs:
+    value: null
+callbacks.model_checkpoint.every_n_train_steps:
+    value: null
+callbacks.model_checkpoint.filename:
+    value: epoch_{epoch:03d}
+callbacks.model_checkpoint.mode:
+    value: max
+callbacks.model_checkpoint.monitor:
+    value: val/accuracy
+callbacks.model_checkpoint.save_last:
+    value: true
+callbacks.model_checkpoint.save_on_train_epoch_end:
+    value: null
+callbacks.model_checkpoint.save_top_k:
+    value: 1
+callbacks.model_checkpoint.save_weights_only:
+    value: false
+callbacks.model_checkpoint.train_time_interval:
+    value: null
+callbacks.model_checkpoint.verbose:
+    value: false
+ckpt_path:
+    value: null
+data:
+    value:
+        _recursive_: false
+        _target_: src.nn.data.SudokuDataModule
+        batch_size: 768
+        data_dir: ./data/sudoku_4x4_small
+        grid_size: 4
+        max_givens: null
+        max_grid_size: 6
+        min_givens: null
+        num_test_puzzles: 0
+        num_train_puzzles: 2000
+        num_val_puzzles: 800
+        num_workers: 0
+        pad_value: 0
+        seed: 42
+data._recursive_:
+    value: false
+data._target_:
+    value: src.nn.data.SudokuDataModule
+data.batch_size:
+    value: 768
+data.data_dir:
+    value: ./data/sudoku_4x4_small
+data.grid_size:
+    value: 4
+data.max_givens:
+    value: null
+data.max_grid_size:
+    value: 6
+data.min_givens:
+    value: null
+data.num_test_puzzles:
+    value: 0
+data.num_train_puzzles:
+    value: 2000
+data.num_val_puzzles:
+    value: 800
+data.num_workers:
+    value: 0
+data.pad_value:
+    value: 0
+data.seed:
+    value: 42
+data_dir:
+    value: ./data/sudoku_4x4_small
+extras:
+    value:
+        enforce_tags: true
+        ignore_warnings: false
+        print_config: true
+extras.enforce_tags:
+    value: true
+extras.ignore_warnings:
+    value: false
+extras.print_config:
+    value: true
+ffn_expansion:
+    value: 4
+grid_size:
+    value: 4
+halt_exploration_prob:
+    value: 0.1
+hidden_size:
+    value: 512
+learning_rate:
+    value: 0.0001
+learning_rate_emb:
+    value: 0.0001
+logger:
+    value:
+        csv:
+            _target_: lightning.pytorch.loggers.csv_logs.CSVLogger
+            name: csv/
+            prefix: ""
+            save_dir: /ibex/user/rossom/bayesian-nano-trm/train/runs/2026-01-05_16-58-06
+        wandb:
+            _target_: lightning.pytorch.loggers.wandb.WandbLogger
+            anonymous: null
+            entity: mattia-rosso-kaust
+            id: null
+            log_model: false
+            name: null
+            notes: null
+            offline: false
+            prefix: ""
+            project: bayesian-nano-trm
+            save_dir: /ibex/user/rossom/bayesian-nano-trm/train/runs/2026-01-05_16-58-06
+            tags:
+                - trm
+                - sudoku
+                - 4x4
+logger.csv._target_:
+    value: lightning.pytorch.loggers.csv_logs.CSVLogger
+logger.csv.name:
+    value: csv/
+logger.csv.prefix:
+    value: ""
+logger.csv.save_dir:
+    value: /ibex/user/rossom/bayesian-nano-trm/train/runs/2026-01-05_16-58-06
+logger.wandb._target_:
+    value: lightning.pytorch.loggers.wandb.WandbLogger
+logger.wandb.anonymous:
+    value: null
+logger.wandb.entity:
+    value: mattia-rosso-kaust
+logger.wandb.id:
+    value: null
+logger.wandb.log_model:
+    value: false
+logger.wandb.name:
+    value: null
+logger.wandb.notes:
+    value: null
+logger.wandb.offline:
+    value: false
+logger.wandb.prefix:
+    value: ""
+logger.wandb.project:
+    value: bayesian-nano-trm
+logger.wandb.save_dir:
+    value: /ibex/user/rossom/bayesian-nano-trm/train/runs/2026-01-05_16-58-06
+logger.wandb.tags.0:
+    value: trm
+logger.wandb.tags.1:
+    value: sudoku
+logger.wandb.tags.2:
+    value: 4x4
+lr_min_ratio:
+    value: 0.01
+max_givens:
+    value: null
+max_grid_size:
+    value: 6
+min_givens:
+    value: null
+model:
+    value:
+        _recursive_: false
+        _target_: src.nn.models.trm.TRMModule
+        H_cycles: 3
+        L_cycles: 6
+        N_supervision: 16
+        N_supervision_val: 16
+        batch_size: 768
+        ffn_expansion: 4
+        halt_exploration_prob: 0.1
+        hidden_size: 512
+        learning_rate: 0.0001
+        learning_rate_emb: 0.0001
+        lr_min_ratio: 0.01
+        max_grid_size: 6
+        num_heads: 8
+        num_layers: 2
+        num_puzzles: 1
+        output_dir: None
+        pad_value: 0
+        pos_emb_type: null
+        puzzle_emb_dim: 0
+        puzzle_emb_len: 0
+        rope_theta: 10000
+        seq_len: 36
+        use_board_swiglu: false
+        use_conv_swiglu: false
+        use_mlp_t: true
+        use_muon: false
+        vocab_size: 7
+        warmup_steps: 2000
+        weight_decay: 1
+model._recursive_:
+    value: false
+model._target_:
+    value: src.nn.models.trm.TRMModule
+model.H_cycles:
+    value: 3
+model.L_cycles:
+    value: 6
+model.N_supervision:
+    value: 16
+model.N_supervision_val:
+    value: 16
+model.batch_size:
+    value: 768
+model.ffn_expansion:
+    value: 4
+model.halt_exploration_prob:
+    value: 0.1
+model.hidden_size:
+    value: 512
+model.learning_rate:
+    value: 0.0001
+model.learning_rate_emb:
+    value: 0.0001
+model.lr_min_ratio:
+    value: 0.01
+model.max_grid_size:
+    value: 6
+model.num_heads:
+    value: 8
+model.num_layers:
+    value: 2
+model.num_puzzles:
+    value: 1
+model.output_dir:
+    value: None
+model.pad_value:
+    value: 0
+model.pos_emb_type:
+    value: null
+model.puzzle_emb_dim:
+    value: 0
+model.puzzle_emb_len:
+    value: 0
+model.rope_theta:
+    value: 10000
+model.seq_len:
+    value: 36
+model.use_board_swiglu:
+    value: false
+model.use_conv_swiglu:
+    value: false
+model.use_mlp_t:
+    value: true
+model.use_muon:
+    value: false
+model.vocab_size:
+    value: 7
+model.warmup_steps:
+    value: 2000
+model.weight_decay:
+    value: 1
+model/params/non_trainable:
+    value: 0
+model/params/total:
+    value: 4781569
+model/params/trainable:
+    value: 4781569
+model_tuning:
+    value:
+        H_cycles: 3
+        L_cycles: 6
+        N_supervision: 16
+        N_supervision_val: 16
+        ffn_expansion: 4
+        halt_exploration_prob: 0.1
+        hidden_size: 512
+        learning_rate: 0.0001
+        learning_rate_emb: 0.0001
+        lr_min_ratio: 0.01
+        num_heads: 8
+        num_layers: 2
+        pos_emb_type: null
+        puzzle_emb_dim: 0
+        puzzle_emb_len: 0
+        rope_theta: 10000
+        use_board_swiglu: false
+        use_conv_swiglu: false
+        use_mlp_t: true
+        use_muon: false
+        warmup_steps: 2000
+        weight_decay: 1
+model_tuning.H_cycles:
+    value: 3
+model_tuning.L_cycles:
+    value: 6
+model_tuning.N_supervision:
+    value: 16
+model_tuning.N_supervision_val:
+    value: 16
+model_tuning.ffn_expansion:
+    value: 4
+model_tuning.halt_exploration_prob:
+    value: 0.1
+model_tuning.hidden_size:
+    value: 512
+model_tuning.learning_rate:
+    value: 0.0001
+model_tuning.learning_rate_emb:
+    value: 0.0001
+model_tuning.lr_min_ratio:
+    value: 0.01
+model_tuning.num_heads:
+    value: 8
+model_tuning.num_layers:
+    value: 2
+model_tuning.pos_emb_type:
+    value: null
+model_tuning.puzzle_emb_dim:
+    value: 0
+model_tuning.puzzle_emb_len:
+    value: 0
+model_tuning.rope_theta:
+    value: 10000
+model_tuning.use_board_swiglu:
+    value: false
+model_tuning.use_conv_swiglu:
+    value: false
+model_tuning.use_mlp_t:
+    value: true
+model_tuning.use_muon:
+    value: false
+model_tuning.warmup_steps:
+    value: 2000
+model_tuning.weight_decay:
+    value: 1
+num_heads:
+    value: 8
+num_layers:
+    value: 2
+num_puzzles:
+    value: 1
+num_test_puzzles:
+    value: 0
+num_train_puzzles:
+    value: 2000
+num_val_puzzles:
+    value: 800
+num_workers:
+    value: 0
+output_dir:
+    value: /ibex/user/rossom/bayesian-nano-trm/train/runs/2026-01-05_16-58-06
+pad_value:
+    value: 0
+paths:
+    value:
+        log_dir: .
+        output_dir: /ibex/user/rossom/bayesian-nano-trm/train/runs/2026-01-05_16-58-06
+paths.log_dir:
+    value: .
+paths.output_dir:
+    value: /ibex/user/rossom/bayesian-nano-trm/train/runs/2026-01-05_16-58-06
+pos_emb_type:
+    value: null
+puzzle_emb_dim:
+    value: 0
+puzzle_emb_len:
+    value: 0
+rope_theta:
+    value: 10000
+save_dir:
+    value: /tmp/ml-experiments
+seed:
+    value: 42
+seq_len:
+    value: 36
+sweep_mode:
+    value: false
+tags:
+    value:
+        - trm
+        - sudoku
+        - 4x4
+tags.0:
+    value: trm
+tags.1:
+    value: sudoku
+tags.2:
+    value: 4x4
+task_name:
+    value: train
+timekeeping:
+    value:
+        batch_size: 768
+        max_epochs: 500
+        num_workers: 0
+timekeeping.batch_size:
+    value: 768
+timekeeping.max_epochs:
+    value: 500
+timekeeping.num_workers:
+    value: 0
+trainer:
+    value:
+        _target_: lightning.pytorch.trainer.Trainer
+        accelerator: gpu
+        check_val_every_n_epoch: 10
+        deterministic: false
+        devices: 1
+        max_epochs: 500
+        min_epochs: 1
+        precision: 32
+trainer._target_:
+    value: lightning.pytorch.trainer.Trainer
+trainer.accelerator:
+    value: gpu
+trainer.check_val_every_n_epoch:
+    value: 10
+trainer.deterministic:
+    value: false
+trainer.devices:
+    value: 1
+trainer.max_epochs:
+    value: 500
+trainer.min_epochs:
+    value: 1
+trainer.precision:
+    value: 32
+use_board_swiglu:
+    value: false
+use_conv_swiglu:
+    value: false
+use_mlp_t:
+    value: true
+use_muon:
+    value: false
+vocab_size:
+    value: 7
+warmup_steps:
+    value: 2000
+weight_decay:
+    value: 1

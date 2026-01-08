@@ -1,0 +1,22 @@
+{
+  "os":  "Linux-5.14.0-427.20.1.el9_4.0.1.x86_64-x86_64-with-glibc2.34",
+  "python":  "CPython 3.12.1",
+  "startedAt":  "2026-01-05T14:15:43.419576Z",
+  "args":  [
+    "experiment=trm_sudoku_4x4",
+    "trainer.accelerator=cpu",
+    "trainer.precision=32"
+  ],
+  "program":  "/ibex/user/rossom/bayesian-nano-trm/src/nn/train.py",
+  "codePath":  "src/nn/train.py",
+  "codePathLocal":  "src/nn/train.py",
+  "git":  {
+    "remote":  "git@github.com:mattyred/bayesian-nano-trm.git",
+    "commit":  "9df5dd7d765dfae5b96b1ff10b6c3e6c05b20dce"
+  },
+  "email":  "mattia.rosso@kaust.edu.sa",
+  "root":  "/ibex/user/rossom/bayesian-nano-trm/train/runs/2026-01-05_17-15-40",
+  "host":  "gpu502-11",
+  "executable":  "/ibex/user/rossom/bayesian-nano-trm/.venv/bin/python3",
+  "writerId":  "ei6af8lyrhdlmc2m429gpc99qaxiloqb"
+}

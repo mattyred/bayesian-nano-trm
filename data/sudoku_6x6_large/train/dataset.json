@@ -1,0 +1,12 @@
+{
+  "num_puzzles": 96000,
+  "num_groups": 12000,
+  "num_augmentations": 7,
+  "mean_puzzles_per_group": 8.0,
+  "grid_size": 6,
+  "max_grid_size": 8,
+  "min_givens": 12,
+  "max_givens": 21,
+  "seq_len": 64,
+  "vocab_size": 9
+}

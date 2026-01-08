@@ -152,7 +152,8 @@ class TRMModule(LightningModule):
             use_conv_swiglu=use_conv_swiglu,
             use_board_swiglu=use_board_swiglu,
             rows = max_grid_size,
-            cols = max_grid_size
+            cols = max_grid_size,
+            dropout=0.25
         )
 
         self.lenet = ReasoningModule(
@@ -326,7 +327,7 @@ class TRMModule(LightningModule):
     
         # LM Outputs
         new_carry = TRMInnerCarry(z_H=z_H.detach(), z_L=z_L.detach())  # New carry no grad
-        output = self.lm_head(z_H)[:, self.puzzle_emb_len :]
+        output = self.lm_head(z_H)[:, self.puzzle_emb_len :] # discard puzzle embeddings
         q_logits = self.q_head(z_H[:, 0]).to(
             torch.float32
         )  # Q-head; uses the first puzzle_emb position

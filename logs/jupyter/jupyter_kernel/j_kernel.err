@@ -1,0 +1,43 @@
+[I 2026-01-06 15:03:39.088 ServerApp] jupyter_lsp | extension was successfully linked.
+[I 2026-01-06 15:03:39.093 ServerApp] jupyter_server_terminals | extension was successfully linked.
+[I 2026-01-06 15:03:39.098 ServerApp] jupyterlab | extension was successfully linked.
+[I 2026-01-06 15:03:39.102 ServerApp] notebook | extension was successfully linked.
+[I 2026-01-06 15:03:39.686 ServerApp] notebook_shim | extension was successfully linked.
+[I 2026-01-06 15:03:39.722 ServerApp] notebook_shim | extension was successfully loaded.
+[I 2026-01-06 15:03:39.724 ServerApp] jupyter_lsp | extension was successfully loaded.
+[I 2026-01-06 15:03:39.726 ServerApp] jupyter_server_terminals | extension was successfully loaded.
+[I 2026-01-06 15:03:39.734 LabApp] JupyterLab extension loaded from /ibex/user/rossom/conda-environments/scalinglaws/lib/python3.11/site-packages/jupyterlab
+[I 2026-01-06 15:03:39.736 LabApp] JupyterLab application directory is /ibex/user/rossom/conda-environments/scalinglaws/share/jupyter/lab
+[I 2026-01-06 15:03:39.739 LabApp] Extension Manager is 'pypi'.
+[I 2026-01-06 15:03:39.836 ServerApp] jupyterlab | extension was successfully loaded.
+[I 2026-01-06 15:03:39.841 ServerApp] notebook | extension was successfully loaded.
+[I 2026-01-06 15:03:39.843 ServerApp] Serving notebooks from local directory: /ibex/user/rossom/bayesian-nano-trm
+[I 2026-01-06 15:03:39.843 ServerApp] Jupyter Server 2.17.0 is running at:
+[I 2026-01-06 15:03:39.843 ServerApp] http://gpu502-11:10000/tree?token=9c15e7c5e6c6dffdcdf7cd42ca18c357674bdbd7a2ddb2f9
+[I 2026-01-06 15:03:39.843 ServerApp]     http://127.0.0.1:10000/tree?token=9c15e7c5e6c6dffdcdf7cd42ca18c357674bdbd7a2ddb2f9
+[I 2026-01-06 15:03:39.843 ServerApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 2026-01-06 15:03:39.851 ServerApp] 
+    
+    To access the server, open this file in a browser:
+        file:///home/rossom/.local/share/jupyter/runtime/jpserver-3291664-open.html
+    Or copy and paste one of these URLs:
+        http://gpu502-11:10000/tree?token=9c15e7c5e6c6dffdcdf7cd42ca18c357674bdbd7a2ddb2f9
+        http://127.0.0.1:10000/tree?token=9c15e7c5e6c6dffdcdf7cd42ca18c357674bdbd7a2ddb2f9
+[I 2026-01-06 15:03:39.953 ServerApp] Skipped non-installed server(s): basedpyright, bash-language-server, dockerfile-language-server-nodejs, javascript-typescript-langserver, jedi-language-server, julia-language-server, pyrefly, pyright, python-language-server, python-lsp-server, r-languageserver, sql-language-server, texlab, typescript-language-server, unified-language-server, vscode-css-languageserver-bin, vscode-html-languageserver-bin, vscode-json-languageserver-bin, yaml-language-server
+[I 2026-01-06 15:04:20.684 ServerApp] 302 GET / (@10.109.65.13) 0.42ms
+[I 2026-01-06 15:04:20.696 JupyterNotebookApp] 302 GET /tree? (@10.109.65.13) 0.39ms
+[I 2026-01-06 15:04:21.768 ServerApp] 302 GET / (@10.109.65.13) 0.27ms
+[I 2026-01-06 15:04:21.779 JupyterNotebookApp] 302 GET /tree? (@10.109.65.13) 0.31ms
+[I 2026-01-06 15:04:24.742 ServerApp] 302 GET / (@10.109.65.13) 0.29ms
+[I 2026-01-06 15:04:24.751 JupyterNotebookApp] 302 GET /tree? (@10.109.65.13) 0.41ms
+[I 2026-01-06 15:04:24.858 ServerApp] Kernel started: 03c2357d-f8c5-46c7-83d9-1e934833d72f
+[I 2026-01-06 15:04:25.811 ServerApp] Connecting to kernel 03c2357d-f8c5-46c7-83d9-1e934833d72f.
+[W 2026-01-06 15:04:25.812 ServerApp] The websocket_ping_timeout (90000) cannot be longer than the websocket_ping_interval (30000).
+    Setting websocket_ping_timeout=30000
+[I 2026-01-06 16:00:51.860 ServerApp] Starting buffering for 03c2357d-f8c5-46c7-83d9-1e934833d72f:de1d7266-e174-4950-aec9-1d18fd1c0b3b
+[I 2026-01-06 16:26:14.816 ServerApp] 302 GET / (@10.109.65.13) 0.28ms
+[I 2026-01-06 16:26:14.829 JupyterNotebookApp] 302 GET /tree? (@10.109.65.13) 0.38ms
+[I 2026-01-06 16:26:15.092 ServerApp] Connecting to kernel 03c2357d-f8c5-46c7-83d9-1e934833d72f.
+[I 2026-01-06 16:32:44.767 ServerApp] Kernel interrupted: 03c2357d-f8c5-46c7-83d9-1e934833d72f
+[I 2026-01-06 16:32:52.000 ServerApp] Kernel interrupted: 03c2357d-f8c5-46c7-83d9-1e934833d72f
+slurmstepd: error: *** JOB 43686488 ON gpu502-11 CANCELLED AT 2026-01-06T19:03:53 DUE TO TIME LIMIT ***

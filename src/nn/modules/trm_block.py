@@ -389,6 +389,7 @@ class ReasoningBlockConfig:
         puzzle_emb_len: int = 0,
         use_conv_swiglu: bool = False,
         use_board_swiglu: bool = False,
+        dropout: float = 0.1
     ) -> None:
         self.hidden_size = hidden_size
         self.num_heads = num_heads
@@ -402,6 +403,7 @@ class ReasoningBlockConfig:
         self.rows = rows
         self.use_conv_swiglu = use_conv_swiglu
         self.use_board_swiglu = use_board_swiglu
+        self.dropout = dropout
 
 
 class ReasoningBlock(nn.Module):
@@ -409,6 +411,7 @@ class ReasoningBlock(nn.Module):
         super().__init__()
         self.config = config
         self.norm_eps = config.rms_norm_eps
+        self.dropout = nn.Dropout(config.dropout)
 
         # 1. Calculate Effective Length
         # If config is 0 (auto), infer from dimensions. Otherwise use config.
@@ -461,6 +464,7 @@ class ReasoningBlock(nn.Module):
         if self.config.mlp_t:
             hidden_states = hidden_states.transpose(1,2)
             out = self.mlp_t(hidden_states)
+            out = self.dropout(out)
             hidden_states = rms_norm(hidden_states + out, variance_epsilon=self.norm_eps)
             hidden_states = hidden_states.transpose(1,2)
         else:
