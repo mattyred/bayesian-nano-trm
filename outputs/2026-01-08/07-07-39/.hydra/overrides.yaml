@@ -1,0 +1,2 @@
+- +checkpoint=/tmp/ml-experiments/fresh-shadow-11/checkpoints/last.ckpt
+- +data_dir=./data/sudoku_6x6_large

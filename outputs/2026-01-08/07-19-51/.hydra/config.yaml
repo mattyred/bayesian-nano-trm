@@ -1,0 +1,9 @@
+checkpoint: train/runs/2026-01-06_16-21-25/checkpoints/last.ckpt
+data_dir: ./data/sudoku_6x6_large
+device: cpu
+per_task: false
+output_dir: null
+batch_size: 32
+paths:
+  log_dir: /tmp/logs/
+  output_dir: ${hydra:runtime.output_dir}

@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
-
+import copy
 import pandas as pd
 import torch
 import pathlib
@@ -176,9 +176,207 @@ class SudokuEvaluator:
 
         return True
 
+    def _print_stochastic_thinking_visualization(
+        self,
+        inp_grid: torch.Tensor,
+        tgt_grid: torch.Tensor,
+        step_predictions_all_runs: list,  # [num_runs][num_steps][grid, grid]
+        step_confidences: list,           # ideally [num_runs][num_steps][grid, grid] (or None / [])
+        step_q_halt: list,                # ideally [num_runs][num_steps] (or [num_steps])
+        step_halted: list,                # ideally [num_runs][num_steps] (or [num_steps])
+        show_confidence: bool = True,
+    ):
+        """Print thinking visualization with multiple stochastic predictions (MC runs) side-by-side."""
+
+        def decode_cell(val, is_input=False):
+            val = val.item() if hasattr(val, "item") else val
+            if val == 0:
+                return "."  # PAD
+            elif val == 1:
+                return "X"  # EOS
+            elif val == 2:
+                return "_" if is_input else "?"  # Empty
+            else:
+                return str(val - 2)  # Actual value (1-9)
+
+        def format_cell(val, conf=None, prev_val=None, target_val=None, is_empty=False):
+            cell_str = decode_cell(val)
+            prefix = " "
+            if prev_val is not None and val != prev_val:
+                prefix = "*"  # changed from previous step
+            elif target_val is not None and val != target_val and is_empty:
+                prefix = "!"  # wrong vs target (only for cells that need prediction)
+            return prefix + cell_str
+
+        def grid_to_lines(grid, prev_grid=None, target=None, input_mask=None):
+            lines = []
+            box_rows, box_cols = self._get_box_dims(self.grid_size)
+
+            for r in range(self.grid_size):
+                if r > 0 and r % box_rows == 0:
+                    sep_parts = []
+                    for _ in range(self.grid_size // box_cols):
+                        sep_parts.append("-" * (box_cols * 2))
+                    lines.append("+".join(sep_parts))
+
+                row_str = ""
+                for c in range(self.grid_size):
+                    if c > 0 and c % box_cols == 0:
+                        row_str += "|"
+
+                    is_empty = input_mask[r, c].item() if input_mask is not None else False
+                    prev_val = prev_grid[r, c] if prev_grid is not None else None
+                    target_val = target[r, c] if target is not None else None
+
+                    row_str += format_cell(grid[r, c], None, prev_val, target_val, is_empty)
+
+                lines.append(row_str)
+
+            return lines
+
+        def compute_metrics(pred, target, mask):
+            correct = (pred == target) & mask
+            total = mask.sum().item()
+            if total == 0:
+                return 1.0, 0
+            return correct.sum().item() / total, (mask & ~correct).sum().item()
+
+        def _get(obj, r, s, default=None):
+            """Safe getter for obj shaped as [runs][steps] or [steps]."""
+            if obj is None:
+                return default
+            try:
+                return obj[r][s]
+            except Exception:
+                try:
+                    return obj[s]
+                except Exception:
+                    return default
+
+        def _combine_runs_lines(runs_lines, sep="   ||   "):
+            """runs_lines: list[list[str]] each same length; pads per-run to its own width."""
+            widths = [max(len(l) for l in lines) if lines else 0 for lines in runs_lines]
+            out = []
+            for i in range(len(runs_lines[0])):
+                parts = []
+                for ridx, lines in enumerate(runs_lines):
+                    parts.append(f"{lines[i]:<{widths[ridx]}}")
+                out.append(sep.join(parts))
+            return out
+
+        # Mask for cells to predict (empty cells in input, encoded as 2)
+        input_mask = (inp_grid == 2)
+
+        num_runs = len(step_predictions_all_runs)
+        num_steps = len(step_predictions_all_runs[0]) if num_runs > 0 else 0
+
+        print("\n" + "=" * 120)
+        print("TRM THINKING VISUALIZATION (MC runs side-by-side)")
+        print(f"H_cycles={self.model.hparams.H_cycles}, L_cycles={self.model.hparams.L_cycles}")
+        print(f"Runs={num_runs}, Steps={num_steps}")
+        print("=" * 120)
+
+        # Print input and target side by side (single)
+        inp_lines = grid_to_lines(inp_grid)
+        tgt_lines = grid_to_lines(tgt_grid)
+        width = max(len(line) for line in inp_lines) + 4
+
+        print(f"\n{'INPUT':<{width}}TARGET")
+        print(f"{'-' * (width - 2):<{width}}{'-' * (width - 2)}")
+        for inp_line, tgt_line in zip(inp_lines, tgt_lines):
+            print(f"{inp_line:<{width}}{tgt_line}")
+
+        print(f"\nEmpty cells to fill: {input_mask.sum().item()}")
+
+        print("\n" + "-" * 120)
+        print("STEP-BY-STEP REASONING (each step = H×L iterations of reasoning blocks)")
+        print("-" * 120)
+
+        # Track previous prediction per run (for * changed markers)
+        prev_pred_per_run = [None for _ in range(num_runs)]
+
+        for step in range(num_steps):
+            # Per-run metrics (optional summary)
+            accs, errs, changes_list = [], [], []
+
+            for r in range(num_runs):
+                pred = step_predictions_all_runs[r][step]
+                acc, errors = compute_metrics(pred, tgt_grid, input_mask)
+                accs.append(acc)
+                errs.append(errors)
+
+                prev_pred = prev_pred_per_run[r]
+                if prev_pred is not None:
+                    changes = ((pred != prev_pred) & input_mask).sum().item()
+                else:
+                    changes = None
+                changes_list.append(changes)
+
+            # Header
+            mean_acc = sum(accs) / len(accs) if accs else 0.0
+            mean_err = sum(errs) / len(errs) if errs else 0.0
+
+            # q/halt summary (works for either [runs][steps] or [steps])
+            q_vals = []
+            halted_any = False
+            for r in range(num_runs):
+                q = _get(step_q_halt, r, step, default=None)
+                h = _get(step_halted, r, step, default=False)
+                if q is not None:
+                    q_vals.append(float(q))
+                halted_any = halted_any or bool(h)
+
+            q_str = ""
+            if q_vals:
+                q_str = f" | q_halt: mean={sum(q_vals)/len(q_vals):+.2f}, max={max(q_vals):+.2f}"
+            if halted_any:
+                q_str += " | some runs HALTED"
+
+            print(f"\n┌─ Step {step + 1} ─" + "─" * 102)
+            print(f"│ Mean accuracy: {mean_acc:.1%} | Mean errors: {mean_err:.2f}{q_str}")
+            print("└" + "─" * 114)
+
+            # Build each run's grid lines, then print line-wise combined
+            runs_lines = []
+            for r in range(num_runs):
+                pred = step_predictions_all_runs[r][step]
+                prev_pred = prev_pred_per_run[r]
+                run_lines = grid_to_lines(pred, prev_pred, tgt_grid, input_mask)
+                # Add a small run label prefix on the first line (optional but handy)
+                run_lines = run_lines.copy()
+                run_lines[0] = f"Run {r+1}: " + run_lines[0]
+                # Pad other lines with same prefix spacing
+                prefix_len = len(f"Run {r+1}: ")
+                for i in range(1, len(run_lines)):
+                    run_lines[i] = " " * prefix_len + run_lines[i]
+                runs_lines.append(run_lines)
+
+            combined = _combine_runs_lines(runs_lines, sep="   |   ")
+            for line in combined:
+                print("  " + line)
+
+            # Update prev preds
+            for r in range(num_runs):
+                prev_pred_per_run[r] = step_predictions_all_runs[r][step]
+
+        # Final summary across runs
+        if num_steps > 0 and num_runs > 0:
+            final_preds = [step_predictions_all_runs[r][-1] for r in range(num_runs)]
+            solved_runs = 0
+            for r in range(num_runs):
+                fp = final_preds[r]
+                ok = torch.all(fp[input_mask] == tgt_grid[input_mask]).item() if input_mask.sum() > 0 else True
+                solved_runs += int(ok)
+
+            print("\n" + "=" * 120)
+            print(f"RESULT: solved_runs={solved_runs}/{num_runs} | steps={num_steps}")
+            print("=" * 120)
+
+        print("\nLegend: *N = changed this step, !N = wrong prediction")
+
     def visualize_thinking(
-        self, 
-        batch: Dict[str, torch.Tensor], 
+        self,
+        batch: Dict[str, torch.Tensor],
         sample_idx: int = 0,
         max_steps: int = None,
         show_confidence: bool = True,
@@ -187,120 +385,187 @@ class SudokuEvaluator:
         gif_size: int = 400,
         gif_duration: int = 1000,
         save_pngs: bool = True,
+        dropout_enabled: bool = False,
+        num_stochastic_runs: int = 1,
     ) -> Dict[str, Any]:
         """
         Visualize the TRM's thinking process for a single sample.
-        
-        Shows how z_H (decoded to predictions) evolves at each iteration.
-        
-        Args:
-            batch: Batch of samples
-            sample_idx: Which sample in the batch to visualize
-            max_steps: Maximum steps to run (default: N_supervision_val)
-            show_confidence: Whether to show confidence values
-            save_gif: Whether to save an animated GIF
-            gif_path: Path to save GIF (default: thinking_visualization.gif)
-            gif_size: Width/height of the GIF in pixels
-            gif_duration: Duration of each frame in milliseconds
-            save_pngs: Whether to also save individual PNG frames
-            
-        Returns:
-            Dictionary with step-by-step predictions and metadata
+
+        MODIFIED: At each step, produce multiple MC samples (multiple stochastic predictions)
+        from the SAME carry state, then advance the main carry using run 0.
         """
+
         batch = {
-            k: v.to(self.device) if isinstance(v, torch.Tensor) else v 
+            k: v.to(self.device) if isinstance(v, torch.Tensor) else v
             for k, v in batch.items()
         }
-        
+
         inputs = batch["input"]
         targets = batch["output"]
         batch_size = len(inputs)
-        
+
         if sample_idx >= batch_size:
             raise ValueError(f"sample_idx {sample_idx} >= batch_size {batch_size}")
-        
+
         if max_steps is None:
             max_steps = self.model.hparams.N_supervision_val
-        
-        # Get puzzle embedding length
-        puzzle_emb_len = getattr(self.model, 'puzzle_emb_len', 0)
-        
+
         # Extract single sample info
         inp = inputs[sample_idx].reshape(self.max_grid_size, self.max_grid_size)
         tgt = targets[sample_idx].reshape(self.max_grid_size, self.max_grid_size)
         inp_grid = inp[:self.grid_size, :self.grid_size]
         tgt_grid = tgt[:self.grid_size, :self.grid_size]
-        
-        # Track predictions at each step
-        step_predictions = []
+
+        # Storage: [num_runs][num_steps][grid, grid]
+        step_predictions_all_runs = [[] for _ in range(num_stochastic_runs)]
+
+        # If you want these per-step (from the "main" run), keep as [num_steps]
         step_confidences = []
         step_q_halt = []
         step_halted = []
-        
-        with torch.no_grad():
-            carry = self.model.initial_carry(batch)
-            
-            for step in range(max_steps):
-                carry, outputs = self.model.forward(carry, batch)
-                
-                logits = outputs["logits"]  # [batch, seq_len, vocab]
-                q_halt = outputs["q_halt_logits"]  # [batch]
-                
-                # Get predictions and confidence for this sample
-                sample_logits = logits[sample_idx]  # [seq_len, vocab]
-                probs = torch.softmax(sample_logits, dim=-1)
-                confidence, preds = probs.max(dim=-1)  # [seq_len]
-                
-                # Reshape to grid
-                pred_grid = preds.reshape(self.max_grid_size, self.max_grid_size)
-                conf_grid = confidence.reshape(self.max_grid_size, self.max_grid_size)
-                
-                # Extract actual puzzle region
-                pred_sudoku = pred_grid[:self.grid_size, :self.grid_size].clone()
-                conf_sudoku = conf_grid[:self.grid_size, :self.grid_size].clone()
-                
-                step_predictions.append(pred_sudoku.cpu())
-                step_confidences.append(conf_sudoku.cpu())
-                step_q_halt.append(q_halt[sample_idx].item())
-                step_halted.append(carry.halted[sample_idx].item())
-                
-                # Check if this sample halted
-                if carry.halted[sample_idx]:
-                    break
-        
-        # Print visualization
-        self._print_thinking_visualization(
-            inp_grid.cpu(), 
-            tgt_grid.cpu(), 
-            step_predictions, 
-            step_confidences,
-            step_q_halt,
-            step_halted,
-            show_confidence=show_confidence,
+
+        # Optional: if you want per-run confidences/halting, uncomment these instead
+        # step_confidences = [[] for _ in range(num_stochastic_runs)]
+        # step_q_halt = [[] for _ in range(num_stochastic_runs)]
+        # step_halted = [[] for _ in range(num_stochastic_runs)]
+
+        # Set dropout mode
+        original_training = self.model.training
+        if dropout_enabled:
+            self.model.train()
+        else:
+            self.model.eval()
+
+        print(
+            f"\nPer-step MC sampling: {num_stochastic_runs} sample(s)/step "
+            f"(dropout={'ON' if dropout_enabled else 'OFF'})"
         )
-        
-        # Generate GIF if requested
-        if save_gif:
-            gif_file = gif_path or "thinking_visualization.gif"
-            self._generate_thinking_gif(
+
+        def _clone_carry(c):
+            # Deepcopy is the most robust if carry is a dataclass/pytree.
+            # If this is too slow, implement a custom clone that clones tensor fields only.
+            return copy.deepcopy(c)
+
+        try:
+            with torch.no_grad():
+                carry = self.model.initial_carry(batch)
+                print(f"Initial carry z_H: {carry.inner_carry.z_H.shape}")
+                print(f"Initial carry z_L: {carry.inner_carry.z_L.shape}")
+                print(f"Initial carry steps: {carry.steps.shape}")
+                print(f"Initial carry halted: {carry.halted.shape}")
+                print(f"Initial carry current_data['input']: {carry.current_data['input'].shape}")
+                print(f"Initial carry current_data['output']: {carry.current_data['output'].shape}")
+                print(f"Initial carry current_data['puzzle_identifiers']: {carry.current_data['puzzle_identifiers'].shape}")
+
+                for step in range(max_steps):
+                    # For THIS step: generate MC samples from the SAME carry
+                    carry_snapshot = carry  # don't mutate directly; advance later using run 0
+
+                    # We'll advance using run 0
+                    carry_next_main = None
+                    outputs_main = None
+
+                    for run_idx in range(num_stochastic_runs):
+                        carry_run = _clone_carry(carry_snapshot)
+                        carry_next, outputs = self.model.forward(carry_run, batch)
+
+                        logits = outputs["logits"]           # [batch, seq_len, vocab]
+                        q_halt = outputs["q_halt_logits"]    # [batch]
+
+                        sample_logits = logits[sample_idx]   # [seq_len, vocab]
+                        probs = torch.softmax(sample_logits, dim=-1)
+                        confidence, preds = probs.max(dim=-1)  # [seq_len]
+
+                        pred_grid = preds.reshape(self.max_grid_size, self.max_grid_size)
+                        conf_grid = confidence.reshape(self.max_grid_size, self.max_grid_size)
+
+                        pred_sudoku = pred_grid[:self.grid_size, :self.grid_size].clone()
+                        conf_sudoku = conf_grid[:self.grid_size, :self.grid_size].clone()
+
+                        step_predictions_all_runs[run_idx].append(pred_sudoku.cpu())
+
+                        # If you want confidence/q_halt/halted PER RUN, store here instead:
+                        # step_confidences[run_idx].append(conf_sudoku.cpu())
+                        # step_q_halt[run_idx].append(q_halt[sample_idx].item())
+                        # step_halted[run_idx].append(carry_next.halted[sample_idx].item())
+
+                        if run_idx == 0:
+                            carry_next_main = carry_next
+                            outputs_main = outputs
+                            # Store per-step (main run) metadata
+                            step_confidences.append(conf_sudoku.cpu())
+                            step_q_halt.append(q_halt[sample_idx].item())
+                            step_halted.append(carry_next.halted[sample_idx].item())
+
+                    # Advance the main trajectory using run 0
+                    carry = carry_next_main
+
+                    # Stop if the (main) carry says this sample halted
+                    if carry.halted[sample_idx]:
+                        break
+
+        finally:
+            self.model.train(original_training)
+
+        steps_executed = len(step_predictions_all_runs[0]) if num_stochastic_runs > 0 else 0
+        print(f"\nTotal steps executed: {steps_executed}")
+        # Print visualization
+        if num_stochastic_runs > 1:
+            self._print_stochastic_thinking_visualization(
                 inp_grid.cpu(),
                 tgt_grid.cpu(),
-                step_predictions,
-                gif_path=gif_file,
-                size=gif_size,
-                duration=gif_duration,
-                save_pngs=save_pngs,
+                step_predictions_all_runs,
+                step_confidences,   # main-run per-step
+                step_q_halt,        # main-run per-step
+                step_halted,        # main-run per-step
+                show_confidence=show_confidence,
             )
-        
+        else:
+            self._print_thinking_visualization(
+                inp_grid.cpu(),
+                tgt_grid.cpu(),
+                step_predictions_all_runs[0],
+                step_confidences,
+                step_q_halt,
+                step_halted,
+                show_confidence=show_confidence,
+            )
+
+        # GIF logic (unchanged externally; uses your stochastic GIF generator if >1 run)
+        if save_gif:
+            gif_file = gif_path or "thinking_visualization.gif"
+            if num_stochastic_runs > 1:
+                self._generate_stochastic_thinking_gif(
+                    inp_grid.cpu(),
+                    tgt_grid.cpu(),
+                    step_predictions_all_runs,
+                    gif_path=gif_file,
+                    size=gif_size,
+                    duration=gif_duration,
+                    save_pngs=save_pngs,
+                )
+            else:
+                self._generate_thinking_gif(
+                    inp_grid.cpu(),
+                    tgt_grid.cpu(),
+                    step_predictions_all_runs[0],
+                    gif_path=gif_file,
+                    size=gif_size,
+                    duration=gif_duration,
+                    save_pngs=save_pngs,
+                )
+
         return {
             "input": inp_grid.cpu(),
             "target": tgt_grid.cpu(),
-            "step_predictions": step_predictions,
-            "step_confidences": step_confidences,
-            "step_q_halt": step_q_halt,
-            "step_halted": step_halted,
-            "num_steps": len(step_predictions),
+            "step_predictions": step_predictions_all_runs,  # [runs][steps]
+            "step_confidences": step_confidences,           # [steps] (main run)
+            "step_q_halt": step_q_halt,                     # [steps] (main run)
+            "step_halted": step_halted,                     # [steps] (main run)
+            "num_steps": steps_executed,
+            "num_runs": num_stochastic_runs,
         }
+
     
     def _generate_thinking_gif(
         self,
@@ -709,6 +974,8 @@ class SudokuEvaluator:
         gif_size: int = 400,
         gif_duration: int = 1000,
         save_pngs: bool = True,
+        dropout_enabled: bool = False,
+        num_stochastic_runs: int = 1,
     ):
         """
         Convenience method to visualize thinking on a specific sample.
@@ -752,6 +1019,8 @@ class SudokuEvaluator:
                     return self.visualize_thinking(
                         batch, within_batch_idx, 
                         show_confidence=show_confidence,
+                        dropout_enabled=dropout_enabled,
+                        num_stochastic_runs=num_stochastic_runs,
                         **gif_kwargs
                     )
             
@@ -783,6 +1052,8 @@ class SudokuEvaluator:
                     return self.visualize_thinking(
                         batch, within_batch_idx, 
                         show_confidence=show_confidence,
+                        dropout_enabled=dropout_enabled,
+                        num_stochastic_runs=num_stochastic_runs,
                         **gif_kwargs
                     )
                 
@@ -797,6 +1068,8 @@ class SudokuEvaluator:
                     return self.visualize_thinking(
                         batch, within_batch_idx, 
                         show_confidence=show_confidence,
+                        dropout_enabled=dropout_enabled,
+                        num_stochastic_runs=num_stochastic_runs,
                         **gif_kwargs
                     )
         

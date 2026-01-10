@@ -1,0 +1,16 @@
+{
+  "checkpoint": "train/runs/2026-01-06_16-21-25/checkpoints/last.ckpt",
+  "timestamp": "20260108_081930",
+  "grid_size": 6,
+  "cross_size": false,
+  "train_grid_size": 6,
+  "eval_grid_size": 6,
+  "results": {
+    "pixel_accuracy": 0.9073286614110393,
+    "task_accuracy": 0.7011088709677419,
+    "validity_rate": 0.8734879032258065,
+    "tasks_correct": 1391,
+    "total_tasks": 1984,
+    "avg_steps": 16.0
+  }
+}
