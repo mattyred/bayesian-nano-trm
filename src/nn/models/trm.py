@@ -308,10 +308,12 @@ class TRMModule(LightningModule):
         seq_info = dict(
             cos_sin=self.pos_embedding() if hasattr(self, "pos_embedding") else None,
         )
-
+        #print(f"[inner forward] seq_info: {seq_info}")
         # Input encoding
         input_embeddings = self._input_embeddings(batch["input"], batch["puzzle_identifiers"])
-
+        #print(f"[inner forward] batch[\"input\"].shape: {batch["input"].shape}")
+        #print(f"[inner forward] input_embeddings shape: {input_embeddings.shape}")
+        #print(f"[inner forward] input_embeddings[0,0]: {input_embeddings[0,0,:]}")
         # Forward iterations
         z_H, z_L = carry.z_H, carry.z_L
         # H_cycles-1 without grad
@@ -331,8 +333,384 @@ class TRMModule(LightningModule):
         q_logits = self.q_head(z_H[:, 0]).to(
             torch.float32
         )  # Q-head; uses the first puzzle_emb position
-
+        #print(f"[inner forward] z_H shape: {z_H.shape}")
+        #print(f"[inner forward] z_L shape: {z_L.shape}")
+        #print(f"[inner forward] q_logits shape: {q_logits.shape}")
+        #print(f"[inner forward] output shape: {output.shape}")
         return new_carry, output, q_logits[..., 0]
+
+    def _visualize_inner_forward_debug(
+        self,
+        batch: Dict[str, torch.Tensor],
+        output_H: torch.Tensor,
+        output_L: torch.Tensor,
+        q_logits: torch.Tensor,
+        sample_idx: int,
+    ):
+        """
+        Visualize z_H and z_L evolution for a specific sample as Sudoku grids.
+        
+        Args:
+            batch: Current batch
+            sample_idx: Which sample to track (0 by default)
+            z_H: Current z_H state tensor
+            z_L_history: List of z_L states at each cycle
+            cycle_log: List of cycle names for labeling
+            final_output: Final predictions from lm_head
+            final_q_logit: Final halting logit
+        """
+        import numpy as np
+        
+        # Only log every N steps to avoid spam
+        #log_interval = 100
+        #if self.manual_step % log_interval != 0:
+        #    return
+        
+        inputs = batch["input"]
+        targets = batch["output"]
+        grid_size = 6
+        
+        # Extract grid info (reshape using max_grid_size)
+        inp = inputs[sample_idx].reshape(self.hparams.max_grid_size, self.hparams.max_grid_size)
+        tgt = targets[sample_idx].reshape(self.hparams.max_grid_size, self.hparams.max_grid_size)
+        
+        inp_grid = inp[:grid_size, :grid_size]
+        tgt_grid = tgt[:grid_size, :grid_size]
+
+        # Compute confidence and prediction from out_H=lm_head(z_H) and out_L=lm_head(z_L)
+        sample_logits_H = output_H[sample_idx]  # [seq_len, vocab]
+        probs_H = torch.softmax(sample_logits_H, dim=-1)
+        confidence_H, preds_H = probs_H.max(dim=-1)
+        
+        sample_logits_L = output_L[sample_idx]  # [seq_len, vocab]
+        probs_L = torch.softmax(sample_logits_L, dim=-1)
+        confidence_L, preds_L = probs_L.max(dim=-1)
+
+        # Reshape to grids
+        pred_H = preds_H.reshape(self.hparams.max_grid_size, self.hparams.max_grid_size)
+        conf_H = confidence_H.reshape(self.hparams.max_grid_size, self.hparams.max_grid_size)
+        pred_L = preds_L.reshape(self.hparams.max_grid_size, self.hparams.max_grid_size)
+        conf_L = confidence_L.reshape(self.hparams.max_grid_size, self.hparams.max_grid_size)
+        pred_H_grid = pred_H[:grid_size, :grid_size].clone()
+        conf_H_grid = conf_H[:grid_size, :grid_size].clone()
+        pred_L_grid = pred_L[:grid_size, :grid_size].clone()
+        conf_L_grid = conf_L[:grid_size, :grid_size].clone()
+        
+        def decode_cell(val, is_input=False):
+            val = val.item() if hasattr(val, 'item') else val
+            if val == 0:
+                return "."  # PAD
+            elif val == 1:
+                return "X"  # EOS
+            elif val == 2:
+                return "_" if is_input else "?"  # Empty
+            else:
+                return str(val - 2)  # Actual value (1-9)
+        
+        def format_cell(val, conf=None, prev_val=None, target_val=None, is_empty=False):
+            """Format a cell with optional markers."""
+            cell_str = decode_cell(val)
+            
+            # Markers: * = changed, ! = wrong
+            prefix = " "
+            if prev_val is not None and val != prev_val:
+                prefix = "*"  # Changed from previous step
+            elif target_val is not None and val != target_val and is_empty:
+                prefix = "!"  # Wrong vs target (only for cells that need prediction)
+            
+            return prefix + cell_str
+        
+        def get_box_dims(grid_size: int) -> tuple:
+            """Get box dimensions for a grid size."""
+            if grid_size == 4:
+                return 2, 2
+            elif grid_size == 6:
+                return 2, 3
+            elif grid_size == 9:
+                return 3, 3
+            else:
+                raise ValueError(f"Unsupported grid_size: {grid_size}")
+        
+        def grid_to_lines(grid, conf_grid=None, prev_grid=None, target=None, input_mask=None):
+            """Convert grid to list of formatted lines."""
+            lines = []
+            box_rows, box_cols = get_box_dims(grid_size)
+            
+            for r in range(grid_size):
+                if r > 0 and r % box_rows == 0:
+                    # Horizontal separator
+                    sep_parts = []
+                    for s in range(grid_size // box_cols):
+                        sep_parts.append("-" * (box_cols * 2))
+                    lines.append("+".join(sep_parts))
+                
+                row_str = ""
+                for c in range(grid_size):
+                    if c > 0 and c % box_cols == 0:
+                        row_str += "|"
+                    
+                    is_empty = input_mask[r, c].item() if input_mask is not None else False
+                    prev_val = prev_grid[r, c] if prev_grid is not None else None
+                    target_val = target[r, c] if target is not None else None
+                    
+                    row_str += format_cell(grid[r, c], None, prev_val, target_val, is_empty)
+                
+                lines.append(row_str)
+            
+            return lines
+        
+        def compute_metrics(pred, target, mask):
+            """Compute accuracy metrics."""
+            correct = (pred == target) & mask
+            total = mask.sum().item()
+            if total == 0:
+                return 1.0, 0
+            return correct.sum().item() / total, (mask & ~correct).sum().item()
+
+        def create_grid_frame(
+            grid: torch.Tensor,
+            target: torch.Tensor,
+            prev_grid: torch.Tensor,
+            input_mask: torch.Tensor,
+            size: int,
+            cell_size: int,
+            offset: int,
+            box_rows: int,
+            box_cols: int,
+            font,
+            label_font,
+            step: int,
+            total_steps: int,
+            is_input: bool = False,
+        ):
+            """Create a single frame for the GIF."""
+            from PIL import Image, ImageDraw
+            
+            img = Image.new('RGB', (size, size), 'white')
+            draw = ImageDraw.Draw(img)
+            
+            def decode_cell(val):
+                val = val.item() if hasattr(val, 'item') else val
+                if val == 0 or val == 1 or val == 2:
+                    return ""
+                else:
+                    return str(val - 2)
+            
+            # Draw cells
+            for r in range(grid_size):
+                for c in range(grid_size):
+                    x = offset + c * cell_size
+                    y = offset + r * cell_size
+                    
+                    cell_val = grid[r, c]
+                    is_empty_cell = input_mask[r, c].item()
+                    
+                    # Fill cell background (always white)
+                    draw.rectangle(
+                        [x, y, x + cell_size, y + cell_size],
+                        fill='white',
+                        outline=None
+                    )
+                    
+                    # Draw cell value
+                    val_str = decode_cell(cell_val)
+                    if val_str:
+                        # Determine text color
+                        if not is_empty_cell:
+                            # Given cell - gray
+                            text_color = '#666666'
+                        elif not is_input: # and grid[r, c] != prev_grid[r, c]:
+                            # New prediction this step - check if correct
+                            if grid[r, c] == target[r, c]:
+                                text_color = '#228B22'  # Forest green - correct
+                            else:
+                                text_color = '#FF8C00'  # Dark orange - incorrect
+                        else:
+                            # Existing prediction or input - black
+                            text_color = 'black'
+                        
+                        # Center text in cell
+                        bbox = draw.textbbox((0, 0), val_str, font=font)
+                        text_w = bbox[2] - bbox[0]
+                        text_h = bbox[3] - bbox[1]
+                        text_x = x + (cell_size - text_w) // 2
+                        text_y = y + (cell_size - text_h) // 2 - bbox[1]
+                        
+                        draw.text((text_x, text_y), val_str, fill=text_color, font=font)
+        
+            # Draw grid lines
+            grid_size_px = cell_size * grid_size
+            
+            # Thin lines for all cells
+            for i in range(grid_size + 1):
+                # Horizontal
+                y = offset + i * cell_size
+                draw.line([(offset, y), (offset + grid_size_px, y)], fill='black', width=1)
+                # Vertical
+                x = offset + i * cell_size
+                draw.line([(x, offset), (x, offset + grid_size_px)], fill='black', width=1)
+            
+            # Thick lines for boxes
+            for i in range(grid_size // box_rows + 1):
+                y = offset + i * box_rows * cell_size
+                draw.line([(offset, y), (offset + grid_size_px, y)], fill='black', width=3)
+            for i in range(grid_size // box_cols + 1):
+                x = offset + i * box_cols * cell_size
+                draw.line([(x, offset), (x, offset + grid_size_px)], fill='black', width=3)
+            
+            # Draw step label
+            if is_input:
+                label = "Input"
+            else:
+                label = f"Step {step}/{total_steps}"
+            
+            bbox = draw.textbbox((0, 0), label, font=label_font)
+            label_w = bbox[2] - bbox[0]
+            label_x = size - label_w - 10
+            label_y = 10
+            draw.text((label_x, label_y), label, fill='black', font=label_font)
+            
+            return img
+
+        # 1. Prepare the lines for all four grids
+        input_mask = (inp_grid == 2)  # Empty cells to predict
+        input_lines = grid_to_lines(inp_grid, input_mask=input_mask) 
+        target_lines = grid_to_lines(tgt_grid, input_mask=input_mask)
+        grid_H_lines = grid_to_lines(pred_H_grid, target=tgt_grid, input_mask=input_mask)
+        grid_L_lines = grid_to_lines(pred_L_grid, target=tgt_grid, input_mask=input_mask)
+        
+        # 2. Compute metrics for the headers
+        acc_H, err_H = compute_metrics(pred_H_grid, tgt_grid, input_mask)
+        acc_L, err_L = compute_metrics(pred_L_grid, tgt_grid, input_mask)
+
+        # 3. Define formatting width (grid_size * 2 + 2 for markers and separators)
+        col_w = 16 
+
+        # 4. Construct Headers
+        header_str = (
+            f"{'INPUT':<{col_w}} | "
+            f"{'TARGET':<{col_w}} | "
+            f"{'z_H (Acc: ' + f'{acc_H:.1%}' + ')':<{col_w}} | "
+            f"{'z_L (Acc: ' + f'{acc_L:.1%}' + ')':<{col_w}}"
+        )
+
+        print(f"\n" + "="*len(header_str))
+        print(f"STEP: {self.manual_step} | SAMPLE: {sample_idx}")
+        print(f"MARKERS: '!' = Wrong Prediction, '*' = Change Detected")
+        print("-" * len(header_str))
+        print(header_str)
+        print("-" * len(header_str))
+
+        # 5. Zip and Print Rows
+        for l_in, l_tgt, l_h, l_l in zip(input_lines, target_lines, grid_H_lines, grid_L_lines):
+            print(f"{l_in:<{col_w}} | {l_tgt:<{col_w}} | {l_h:<{col_w}} | {l_l:<{col_w}}")
+
+        # 6. Optional: Halting Info
+        q_val = torch.sigmoid(q_logits[sample_idx]).item()
+        print("-" * len(header_str))
+        print(f"Halting Probability (q): {q_val:.4f} " + ("-> STOPPING" if q_val > 0.5 else "-> CONTINUING"))
+        print("="*len(header_str) + "\n")
+
+        # 7. Save grid
+        size = 400
+        padding = size // 10
+        grid_area = size - 2 * padding
+        cell_size = grid_area // grid_size
+        grid_size_px = cell_size * grid_size
+        offset = (size - grid_size_px) // 2
+        box_rows, box_cols = get_box_dims(grid_size)
+        label_font_size = size // 20
+        font_name = "Arial.ttf"
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+        except ImportError:
+            print("PIL not installed. Run: pip install Pillow")
+            return
+        try:
+            # Try common fonts
+            font_size = size // 12
+            label_font_size = size // 20
+            for font_name in ["DejaVuSans.ttf", "Arial.ttf", "Helvetica.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]:
+                try:
+                    font = ImageFont.truetype(font_name, font_size)
+                    label_font = ImageFont.truetype(font_name, label_font_size)
+                    break
+                except (OSError, IOError):
+                    continue
+            else:
+                font = ImageFont.load_default()
+                label_font = font
+        except Exception:
+            font = ImageFont.load_default()
+            label_font = font
+
+        img = create_grid_frame(
+            grid=pred_H_grid,                # Prediction grid from z_H
+            target=tgt_grid,                 # Target grid
+            prev_grid=inp_grid,              # Previous grid (input)
+            input_mask=(inp_grid == 2),      # Mask for empty cells
+            size=size,
+            cell_size=cell_size,
+            offset=offset,
+            box_rows=box_rows,
+            box_cols=box_cols,
+            font=font,
+            label_font=label_font,
+            step=self.manual_step,
+            total_steps=self.hparams.N_supervision,
+            is_input=False,
+        )
+
+        # Save the image
+        img.save(f"z_H_grid_step{self.manual_step}_sample{sample_idx}.png")
+        print(f"Saved z_H grid image: z_H_grid_step{self.manual_step}_sample{sample_idx}.png")
+
+    def inner_forward_debug(
+        self, carry: TRMInnerCarry, batch: Dict[str, torch.Tensor]
+    ) -> Tuple[TRMInnerCarry, torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+        seq_info = dict(
+            cos_sin=self.pos_embedding() if hasattr(self, "pos_embedding") else None,
+        )
+        
+        # Input encoding
+        input_embeddings = self._input_embeddings(batch["input"], batch["puzzle_identifiers"])
+        
+        # Forward iterations
+        z_H, z_L = carry.z_H, carry.z_L
+        
+        # H_cycles-1 without grad
+        with torch.no_grad():
+            for _ in range(self.hparams.H_cycles - 1):
+                for _ in range(self.hparams.L_cycles):
+                    z_L = self.lenet(z_L, z_H + input_embeddings, **seq_info)
+                z_H = self.lenet(z_H, z_L, **seq_info)
+        
+        # 1 with grad
+        for _ in range(self.hparams.L_cycles):
+            z_L = self.lenet(z_L, z_H + input_embeddings, **seq_info)
+        z_H = self.lenet(z_H, z_L, **seq_info)
+        
+        # LM Outputs
+        new_carry = TRMInnerCarry(z_H=z_H.detach(), z_L=z_L.detach())
+        output_H = self.lm_head(z_H)[:, self.puzzle_emb_len:]
+        q_logits = self.q_head(z_H[:, 0]).to(torch.float32)
+        
+        # Also get output_L for visualization
+        with torch.no_grad():
+            output_L = self.lm_head(z_L)[:, self.puzzle_emb_len:]
+
+        # Visualize the tracked sample
+        if self.training and hasattr(self, 'manual_step') and self.current_epoch >= 499:
+            sample_idx = 0
+            self._visualize_inner_forward_debug(
+                batch,
+                output_H,
+                output_L,
+                q_logits,
+                sample_idx,
+            )
+        
+        return new_carry, output_H, q_logits[..., 0]
 
     def forward(
         self, carry: TRMCarry, batch: Dict[str, torch.Tensor]
@@ -348,10 +726,10 @@ class TRMModule(LightningModule):
         }
 
         # Forward inner model
-        new_inner_carry, logits, q_halt_logits = self.inner_forward(
+        new_inner_carry, logits, q_halt_logits = self.inner_forward_debug(
             new_inner_carry, new_current_data
         )
-
+        
         outputs = {
             "logits": logits,
             "q_halt_logits": q_halt_logits,
@@ -380,6 +758,9 @@ class TRMModule(LightningModule):
                     torch.rand_like(q_halt_logits) < self.hparams.halt_exploration_prob
                 ) * torch.randint_like(new_steps, low=2, high=self.hparams.N_supervision + 1)
                 halted = halted & (new_steps >= min_halt_steps)
+
+                 # Print halting decision for sample 0
+                print(f"[Halting Decision] Step {self.manual_step} | Sample 0: halted = {halted[0].item()}")
 
         return TRMCarry(new_inner_carry, new_steps, halted, new_current_data), outputs
 
@@ -445,6 +826,7 @@ class TRMModule(LightningModule):
         Training step that implements supervision through multiple forward passes.
         Each sequence can run up to N_supervision (halt_max_steps) times.
         """
+        #print(f"[training_step] batch_idx: {batch_idx}")
         batch_size = batch["input"].shape[0]
 
         # Handle case when not attached to trainer (for testing)

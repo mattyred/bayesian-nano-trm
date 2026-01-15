@@ -1,0 +1,43 @@
+{
+  "os":  "Linux-5.10.0-34-cloud-amd64-x86_64-with-glibc2.31",
+  "python":  "CPython 3.12.1",
+  "startedAt":  "2026-01-15T09:44:46.841840Z",
+  "args":  [
+    "experiment=trm_sudoku_6x6_small_debug"
+  ],
+  "program":  "/home/rossom/bayesian-nano-trm/src/nn/train.py",
+  "codePath":  "src/nn/train.py",
+  "codePathLocal":  "src/nn/train.py",
+  "git":  {
+    "remote":  "git@github.com:mattyred/bayesian-nano-trm.git",
+    "commit":  "46a8e2e3683611d95b781763916c416758c30d4c"
+  },
+  "email":  "mattia.rosso@kaust.edu.sa",
+  "root":  "/home/rossom/bayesian-nano-trm/train/runs/2026-01-15_09-44-42",
+  "host":  "tiny-models",
+  "executable":  "/home/rossom/bayesian-nano-trm/.venv/bin/python3",
+  "cpu_count":  6,
+  "cpu_count_logical":  12,
+  "gpu":  "NVIDIA A100-SXM4-40GB",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "528173547520",
+      "used":  "38721245184"
+    }
+  },
+  "memory":  {
+    "total":  "89638760448"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA A100-SXM4-40GB",
+      "memoryTotal":  "42949672960",
+      "cudaCores":  6912,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-754f031d-61ca-1b0f-2500-c7efa10af237"
+    }
+  ],
+  "cudaVersion":  "12.4",
+  "writerId":  "nat6giat0kteif2s3osk7ax4fhqle69z"
+}

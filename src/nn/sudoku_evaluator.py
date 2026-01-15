@@ -245,6 +245,7 @@ class SudokuEvaluator:
                 
                 logits = outputs["logits"]  # [batch, seq_len, vocab]
                 q_halt = outputs["q_halt_logits"]  # [batch]
+                print(f"[visualize_thinking] q_halt[{sample_idx}] = {q_halt[sample_idx]}")
                 
                 # Get predictions and confidence for this sample
                 sample_logits = logits[sample_idx]  # [seq_len, vocab]

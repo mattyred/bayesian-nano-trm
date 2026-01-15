@@ -1,0 +1,52 @@
+# @package _global_
+
+defaults:
+  - override /data: sudoku_6x6_small
+  - override /model: trm
+  #- override /logger: csv
+  - override /callbacks: default
+  - override /trainer: gpu
+
+tags: ["sudoku", "trm", "small"]
+
+timekeeping:
+  max_epochs: 500
+  batch_size: 768
+  num_workers: 1
+
+model_tuning:
+  learning_rate: 1e-4
+  learning_rate_emb: 1e-4
+  warmup_steps: 2000
+  weight_decay: 1.0
+  lr_min_ratio: 0.01
+  num_heads: 2
+  halt_exploration_prob: 0.1
+  N_supervision: 16
+  N_supervision_val: 16
+  H_cycles: 3
+  L_cycles: 6
+  num_layers: 2
+  puzzle_emb_dim: 0
+  puzzle_emb_len: 0
+  hidden_size: 512
+  ffn_expansion: 4
+  rope_theta: 10000
+  pos_emb_type: null
+  use_mlp_t: true
+  use_conv_swiglu: false
+  use_board_swiglu: false
+  use_muon: false
+
+trainer:
+  check_val_every_n_epoch: 10
+
+callbacks:
+  ema:
+    _target_: src.nn.callbacks.ema.EMACallback
+    decay: 0.999
+    use_ema_for_validation: true
+    use_ema_for_test: true
+
+save_dir: /tmp/ml-experiments
+append_wandb_name_to_save_dir: true

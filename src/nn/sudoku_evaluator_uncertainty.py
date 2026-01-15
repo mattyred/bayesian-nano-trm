@@ -403,6 +403,7 @@ class SudokuEvaluator:
         inputs = batch["input"]
         targets = batch["output"]
         batch_size = len(inputs)
+        print(f"[visualize_thinking] batch_size: {batch_size}")
 
         if sample_idx >= batch_size:
             raise ValueError(f"sample_idx {sample_idx} >= batch_size {batch_size}")
@@ -415,6 +416,8 @@ class SudokuEvaluator:
         tgt = targets[sample_idx].reshape(self.max_grid_size, self.max_grid_size)
         inp_grid = inp[:self.grid_size, :self.grid_size]
         tgt_grid = tgt[:self.grid_size, :self.grid_size]
+        print(f"[visualize_thinking] inp: {inp.shape}")
+        print(f"[visualize_thinking] tgt: {tgt.shape}")
 
         # Storage: [num_runs][num_steps][grid, grid]
         step_predictions_all_runs = [[] for _ in range(num_stochastic_runs)]
@@ -449,13 +452,6 @@ class SudokuEvaluator:
         try:
             with torch.no_grad():
                 carry = self.model.initial_carry(batch)
-                print(f"Initial carry z_H: {carry.inner_carry.z_H.shape}")
-                print(f"Initial carry z_L: {carry.inner_carry.z_L.shape}")
-                print(f"Initial carry steps: {carry.steps.shape}")
-                print(f"Initial carry halted: {carry.halted.shape}")
-                print(f"Initial carry current_data['input']: {carry.current_data['input'].shape}")
-                print(f"Initial carry current_data['output']: {carry.current_data['output'].shape}")
-                print(f"Initial carry current_data['puzzle_identifiers']: {carry.current_data['puzzle_identifiers'].shape}")
 
                 for step in range(max_steps):
                     # For THIS step: generate MC samples from the SAME carry
@@ -501,6 +497,7 @@ class SudokuEvaluator:
                     carry = carry_next_main
 
                     # Stop if the (main) carry says this sample halted
+                    print(f"[visualize_thinking] halted samples in the carry: {carry.halted.sum().item()}")
                     if carry.halted[sample_idx]:
                         break
 

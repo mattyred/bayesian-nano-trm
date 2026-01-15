@@ -1,0 +1,174 @@
+task_name: train
+tags:
+- sudoku
+- trm
+- small
+ckpt_path: null
+save_dir: /tmp/ml-experiments
+seed: 42
+sweep_mode: false
+append_wandb_name_to_save_dir: true
+timekeeping:
+  max_epochs: 1
+  batch_size: 256
+  num_workers: 1
+data:
+  _target_: src.nn.data.SudokuDataModule
+  _recursive_: false
+  batch_size: 256
+  num_workers: 1
+  num_train_puzzles: 0
+  num_val_puzzles: 0
+  num_test_puzzles: 0
+  grid_size: 6
+  max_grid_size: 8
+  min_givens: null
+  max_givens: null
+  seed: 42
+  data_dir: ./data/sudoku_6x6_small
+  pad_value: 0
+model:
+  _target_: src.nn.models.trm.TRMModule
+  _recursive_: false
+  ffn_expansion: 4
+  hidden_size: 512
+  num_layers: 2
+  N_supervision: 16
+  N_supervision_val: 16
+  learning_rate: 0.0001
+  H_cycles: 3
+  L_cycles: 6
+  learning_rate_emb: 0.0001
+  weight_decay: 1.0
+  halt_exploration_prob: 0.1
+  warmup_steps: 2000
+  num_heads: 2
+  puzzle_emb_dim: 0
+  puzzle_emb_len: 0
+  rope_theta: 10000
+  pos_emb_type: null
+  lr_min_ratio: 0.01
+  use_mlp_t: true
+  use_conv_swiglu: false
+  use_board_swiglu: false
+  use_muon: false
+  output_dir: None
+  num_puzzles: 1
+  batch_size: 256
+  pad_value: 0
+  max_grid_size: 8
+  vocab_size: 9
+  seq_len: 64
+callbacks:
+  model_checkpoint:
+    _target_: lightning.pytorch.callbacks.ModelCheckpoint
+    dirpath: /home/rossom/bayesian-nano-trm/train/runs/2026-01-15_09-23-37/checkpoints
+    filename: epoch_{epoch:03d}
+    monitor: val/accuracy
+    verbose: false
+    save_last: true
+    save_top_k: 1
+    mode: max
+    auto_insert_metric_name: false
+    save_weights_only: false
+    every_n_train_steps: null
+    train_time_interval: null
+    every_n_epochs: null
+    save_on_train_epoch_end: null
+  ema:
+    _target_: src.nn.callbacks.ema.EMACallback
+    decay: 0.999
+    use_ema_for_validation: true
+    use_ema_for_test: true
+logger:
+  csv:
+    _target_: lightning.pytorch.loggers.csv_logs.CSVLogger
+    save_dir: /home/rossom/bayesian-nano-trm/train/runs/2026-01-15_09-23-37
+    name: csv/
+    prefix: ''
+trainer:
+  _target_: lightning.pytorch.trainer.Trainer
+  min_epochs: 1
+  max_epochs: 1
+  accelerator: gpu
+  devices: 1
+  check_val_every_n_epoch: 10
+  deterministic: false
+  precision: bf16-mixed
+paths:
+  log_dir: .
+  output_dir: /home/rossom/bayesian-nano-trm/train/runs/2026-01-15_09-23-37
+extras:
+  ignore_warnings: false
+  enforce_tags: true
+  print_config: true
+model_tuning:
+  learning_rate: 0.0001
+  learning_rate_emb: 0.0001
+  warmup_steps: 2000
+  weight_decay: 1.0
+  lr_min_ratio: 0.01
+  num_heads: 2
+  halt_exploration_prob: 0.1
+  N_supervision: 16
+  N_supervision_val: 16
+  H_cycles: 3
+  L_cycles: 6
+  num_layers: 2
+  puzzle_emb_dim: 0
+  puzzle_emb_len: 0
+  hidden_size: 512
+  ffn_expansion: 4
+  rope_theta: 10000
+  pos_emb_type: null
+  use_mlp_t: true
+  use_conv_swiglu: false
+  use_board_swiglu: false
+  use_muon: false
+model/params/total: 4826625
+model/params/trainable: 4826625
+model/params/non_trainable: 0
+hidden_size: 512
+num_layers: 2
+num_heads: 2
+max_grid_size: 8
+H_cycles: 3
+L_cycles: 6
+N_supervision: 16
+N_supervision_val: 16
+ffn_expansion: 4
+learning_rate: 0.0001
+learning_rate_emb: 0.0001
+weight_decay: 1.0
+warmup_steps: 2000
+halt_exploration_prob: 0.1
+puzzle_emb_dim: 0
+puzzle_emb_len: 0
+rope_theta: 10000
+pos_emb_type: null
+use_mlp_t: true
+use_conv_swiglu: false
+use_board_swiglu: false
+lr_min_ratio: 0.01
+use_muon: false
+vocab_size: 9
+num_puzzles: 1
+batch_size: 256
+pad_value: 0
+seq_len: 64
+output_dir: !!python/object/apply:pathlib.PosixPath
+- /
+- home
+- rossom
+- bayesian-nano-trm
+- train
+- runs
+- 2026-01-15_09-23-37
+data_dir: ./data/sudoku_6x6_small
+num_train_puzzles: 0
+num_val_puzzles: 0
+num_test_puzzles: 0
+min_givens: null
+max_givens: null
+grid_size: 6
+num_workers: 1

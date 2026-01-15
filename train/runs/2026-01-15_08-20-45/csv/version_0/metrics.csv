@@ -1,0 +1,2 @@
+epoch,grad/last_mlp,grad/lm_head,grad/q_head,grad/total_norm,step,train/accuracy,train/early_halt_rate,train/exact_accuracy,train/lm_loss,train/lr,train/q_halt_accuracy,train/q_halt_loss,train/steps
+2,0.2171602100133896,0.14280302822589874,0.004476011265069246,0.33267679810523987,49,0.10409629344940186,0.0,0.0,2.3527737407301883,2.4500000108673703e-06,1.0,0.006715297698974609,16.0
